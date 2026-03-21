@@ -12,13 +12,12 @@
 
 
 services:
-
-  # ── Override the official CVAT server image with our audio-enabled version
   cvat_server:
+    # Change this line!
+    image: sooryacvatreg.azurecr.io/cvat-server-audio:latest
     build:
       context: .
       dockerfile: dockerfile.audio
-    image: cvat-server-audio:local
     environment:
       # Tell CVAT where Postgres and Redis are
       CVAT_POSTGRES_HOST: cvat_db
