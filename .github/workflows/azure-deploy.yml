@@ -1,0 +1,25 @@
+name: Deploy CVAT to Azure
+on:
+  push:
+    branches: [ "feature/audio-playback" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          # DO NOT put the ID here. Use the Secret name you created in GitHub.
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name sooryacvatreg
+
+      - name: Build and Push Images
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.azure.yml build
+          docker compose -f docker-compose.yml -f docker-compose.azure.yml push
