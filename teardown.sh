@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# FILE: part-b/azure-deploy/teardown.sh
+# FILE: teardown.sh
 #
 # Deletes ALL Azure resources created by deploy.sh.
 # Run this when you want to stop the demo and save your student credits.
