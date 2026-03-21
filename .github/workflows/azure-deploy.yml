@@ -9,6 +9,19 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Debug - Show compose config
+        run: |
+          echo "=== docker-compose.azure.yml ==="
+          cat docker-compose.azure.yml
+          echo ""
+          echo "=== Merged compose config ==="
+          docker compose -f docker-compose.yml -f docker-compose.azure.yml config
+          echo ""
+          echo "=== dockerfile.audio exists? ==="
+          ls -la dockerfile.audio
 
       - name: Login to Azure
         uses: azure/login@v1
@@ -21,5 +34,5 @@ jobs:
 
       - name: Build and Push Images
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.azure.yml build
+          docker compose -f docker-compose.yml -f docker-compose.azure.yml build --no-cache
           docker compose -f docker-compose.yml -f docker-compose.azure.yml push
