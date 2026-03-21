@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# FILE: part-b/azure-deploy/deploy.sh
+# FILE: deploy.sh
 #
 # Full deployment of modified CVAT (with audio) to Microsoft Azure.
 # Run this from the root of your CVAT fork after building the audio image.
@@ -11,7 +11,6 @@
 #   - jq installed  (sudo apt-get install jq)
 #
 # Usage:
-#   cd part-b/azure-deploy
 #   chmod +x deploy.sh
 #   ./deploy.sh
 # =============================================================================
@@ -81,7 +80,7 @@ log "(This uses ACR's build service — no local Docker required)"
 az acr build \
     --registry "$ACR_NAME" \
     --image "cvat-server-audio:latest" \
-    --file "part-a/cvat-audio-patch/Dockerfile.audio" \
+    --file "dockerfile.audio" \
     . \
     --output none
 

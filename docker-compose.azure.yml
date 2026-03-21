@@ -1,11 +1,11 @@
-# FILE: part-b/azure-deploy/docker-compose.azure.yml
+# FILE: docker-compose.azure.yml
 #
 # Use this to test your audio-enabled CVAT locally BEFORE deploying to Azure.
 # It mirrors the Azure architecture (Postgres + Redis as separate services).
 #
 # Usage (from your CVAT fork root):
 #   docker compose -f docker-compose.yml \
-#                  -f part-b/azure-deploy/docker-compose.azure.yml \
+#                  -f docker-compose.azure.yml \
 #                  up -d
 #
 # Then open: http://localhost:8080
@@ -18,7 +18,7 @@ services:
   cvat_server:
     build:
       context: .
-      dockerfile: part-a/cvat-audio-patch/Dockerfile.audio
+      dockerfile: dockerfile.audio
     image: cvat-server-audio:local
     environment:
       # Tell CVAT where Postgres and Redis are

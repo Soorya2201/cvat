@@ -1,13 +1,13 @@
-# FILE: part-a/cvat-audio-patch/Dockerfile.audio
+# FILE: dockerfile.audio
 #
 # This extends the official CVAT server image to add ffmpeg,
 # which is required by our audio extraction endpoint.
 #
 # Usage (from the root of your CVAT fork):
-#   docker build -f part-a/cvat-audio-patch/Dockerfile.audio \
+#   docker build -f dockerfile.audio \
 #     -t cvat-server-audio:latest .
 #
-# Or use the docker-compose.audio.yml in part-b/ which handles this automatically.
+# Or use the docker-compose.azure.yml which handles this automatically.
 
 # Pin to the same base CVAT uses — check cvat/Dockerfile for the exact tag
 ARG CVAT_VERSION=latest
