@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Col, Row } from 'antd/lib/grid';
+import AudioPlayer from './audio-player';
 
 import {
     ActiveControl, NavigationType, ToolsBlockerState, Workspace,
@@ -206,6 +207,17 @@ export default function AnnotationTopBarComponent(props: Props): JSX.Element {
         />
     ), 10]);
 
+    // ── Audio Player: renders the hidden <audio> element + mute button
+    // Priority 20 places it just after the navigation controls on the right
+    playerItems.push([(
+        <AudioPlayer
+            key='audio_player'
+            frameNumber={frameNumber}
+            playing={playing}
+            jobInstance={jobInstance}
+        />
+    ), 20]);
+
     return (
         <Row justify='space-between'>
             <LeftGroup
@@ -226,8 +238,8 @@ export default function AnnotationTopBarComponent(props: Props): JSX.Element {
             />
             <Col className='cvat-annotation-header-player-group'>
                 <Row align='middle'>
-                    { playerItems.sort((menuItem1, menuItem2) => menuItem1[1] - menuItem2[1])
-                        .map((menuItem) => menuItem[0]) }
+                    {playerItems.sort((menuItem1, menuItem2) => menuItem1[1] - menuItem2[1])
+                        .map((menuItem) => menuItem[0])}
                 </Row>
             </Col>
             <RightGroup

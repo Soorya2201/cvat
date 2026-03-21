@@ -1,0 +1,33 @@
+# FILE: part-a/cvat-audio-patch/Dockerfile.audio
+#
+# This extends the official CVAT server image to add ffmpeg,
+# which is required by our audio extraction endpoint.
+#
+# Usage (from the root of your CVAT fork):
+#   docker build -f part-a/cvat-audio-patch/Dockerfile.audio \
+#     -t cvat-server-audio:latest .
+#
+# Or use the docker-compose.audio.yml in part-b/ which handles this automatically.
+
+# Pin to the same base CVAT uses — check cvat/Dockerfile for the exact tag
+ARG CVAT_VERSION=latest
+FROM cvat/server:${CVAT_VERSION}
+
+# Switch to root to install system packages
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        ffprobe \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create the audio cache directory with correct permissions
+RUN mkdir -p /home/django/data/audio_cache && \
+    chown -R django:django /home/django/data/audio_cache
+
+# Copy our new audio view file into the CVAT engine app
+COPY cvat/apps/engine/audio_view.py /home/django/cvat/apps/engine/audio_view.py
+
+# Switch back to the non-root user CVAT expects
+USER django

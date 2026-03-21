@@ -1,0 +1,187 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "comment": "Azure Resource Manager template for the CVAT audio demo deployment. Deploy with: az deployment group create --resource-group cvat-everyday-respect-rg --template-file arm-template.json --parameters pgAdminPassword='YourPassword' cvatSecretKey='YourSecretKey' acrPassword='YourACRPassword'",
+
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus",
+      "metadata": { "description": "Azure region for all resources" }
+    },
+    "pgAdminPassword": {
+      "type": "securestring",
+      "metadata": { "description": "PostgreSQL admin password" }
+    },
+    "cvatSecretKey": {
+      "type": "securestring",
+      "metadata": { "description": "Django secret key for CVAT" }
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "defaultValue": "cvateverydayrespect.azurecr.io",
+      "metadata": { "description": "Azure Container Registry login server" }
+    },
+    "acrUsername": {
+      "type": "string",
+      "defaultValue": "cvateverydayrespect",
+      "metadata": { "description": "ACR admin username" }
+    },
+    "acrPassword": {
+      "type": "securestring",
+      "metadata": { "description": "ACR admin password" }
+    }
+  },
+
+  "variables": {
+    "pgServerName": "cvat-postgres-er",
+    "pgDatabaseName": "cvat",
+    "pgAdminUser": "cvat_admin",
+    "storageAccountName": "cvatmediastorage",
+    "redisContainerName": "cvat-redis",
+    "cvatContainerName": "cvat-demo",
+    "dnsLabel": "cvat-everyday-respect"
+  },
+
+  "resources": [
+
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-09-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Standard_LRS" },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2021-06-01",
+      "name": "[variables('pgServerName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "administratorLogin": "[variables('pgAdminUser')]",
+        "administratorLoginPassword": "[parameters('pgAdminPassword')]",
+        "version": "14",
+        "storage": { "storageSizeGB": 32 },
+        "backup": {
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled"
+        },
+        "network": {
+          "publicNetworkAccess": "Enabled"
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2021-06-01",
+      "name": "[concat(variables('pgServerName'), '/', variables('pgDatabaseName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('pgServerName'))]"
+      ],
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      }
+    },
+
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2021-10-01",
+      "name": "[variables('redisContainerName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "containers": [
+          {
+            "name": "redis",
+            "properties": {
+              "image": "redis:7-alpine",
+              "resources": {
+                "requests": { "cpu": 0.5, "memoryInGB": 0.5 }
+              },
+              "ports": [{ "port": 6379, "protocol": "TCP" }]
+            }
+          }
+        ],
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [{ "port": 6379, "protocol": "TCP" }]
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2021-10-01",
+      "name": "[variables('cvatContainerName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/databases', variables('pgServerName'), variables('pgDatabaseName'))]",
+        "[resourceId('Microsoft.ContainerInstance/containerGroups', variables('redisContainerName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ],
+      "properties": {
+        "imageRegistryCredentials": [
+          {
+            "server": "[parameters('acrLoginServer')]",
+            "username": "[parameters('acrUsername')]",
+            "password": "[parameters('acrPassword')]"
+          }
+        ],
+        "containers": [
+          {
+            "name": "cvat",
+            "properties": {
+              "image": "[concat(parameters('acrLoginServer'), '/cvat-server-audio:latest')]",
+              "resources": {
+                "requests": { "cpu": 2, "memoryInGB": 4 }
+              },
+              "ports": [{ "port": 8080, "protocol": "TCP" }],
+              "environmentVariables": [
+                { "name": "CVAT_POSTGRES_HOST", "value": "[concat(variables('pgServerName'), '.postgres.database.azure.com')]" },
+                { "name": "CVAT_POSTGRES_DBNAME", "value": "[variables('pgDatabaseName')]" },
+                { "name": "CVAT_POSTGRES_USER", "value": "[variables('pgAdminUser')]" },
+                { "name": "CVAT_POSTGRES_PORT", "value": "5432" },
+                { "name": "CVAT_DEPLOYMENT_TYPE", "value": "none" },
+                { "name": "CVAT_POSTGRES_PASSWORD", "secureValue": "[parameters('pgAdminPassword')]" },
+                { "name": "CVAT_SECRET_KEY", "secureValue": "[parameters('cvatSecretKey')]" }
+              ]
+            }
+          }
+        ],
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "ipAddress": {
+          "type": "Public",
+          "dnsNameLabel": "[variables('dnsLabel')]",
+          "ports": [{ "port": 8080, "protocol": "TCP" }]
+        }
+      }
+    }
+
+  ],
+
+  "outputs": {
+    "cvatUrl": {
+      "type": "string",
+      "value": "[concat('http://', variables('dnsLabel'), '.', parameters('location'), '.azurecontainer.io:8080')]"
+    },
+    "pgHost": {
+      "type": "string",
+      "value": "[concat(variables('pgServerName'), '.postgres.database.azure.com')]"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+# FILE: part-b/azure-deploy/docker-compose.azure.yml
+#
+# Use this to test your audio-enabled CVAT locally BEFORE deploying to Azure.
+# It mirrors the Azure architecture (Postgres + Redis as separate services).
+#
+# Usage (from your CVAT fork root):
+#   docker compose -f docker-compose.yml \
+#                  -f part-b/azure-deploy/docker-compose.azure.yml \
+#                  up -d
+#
+# Then open: http://localhost:8080
+
+version: '3.8'
+
+services:
+
+  # ── Override the official CVAT server image with our audio-enabled version
+  cvat_server:
+    build:
+      context: .
+      dockerfile: part-a/cvat-audio-patch/Dockerfile.audio
+    image: cvat-server-audio:local
+    environment:
+      # Tell CVAT where Postgres and Redis are
+      CVAT_POSTGRES_HOST: cvat_db
+      CVAT_POSTGRES_DBNAME: cvat
+      CVAT_POSTGRES_USER: cvat
+      CVAT_POSTGRES_PASSWORD: cvat_password
+      CVAT_REDIS_HOST: cvat_redis
+      DJANGO_LOG_SERVER_HOST: localhost
+      CVAT_DEPLOYMENT_TYPE: none
+    volumes:
+      # Mount our patched audio_view.py into the container at runtime
+      # (for faster iteration — no rebuild needed when you edit the Python)
+      - ./cvat/apps/engine/audio_view.py:/home/django/cvat/apps/engine/audio_view.py:ro
+    depends_on:
+      - cvat_db
+      - cvat_redis
+
+  # ── Postgres (same version as Azure managed Postgres)
+  cvat_db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: cvat
+      POSTGRES_USER: cvat
+      POSTGRES_PASSWORD: cvat_password
+    volumes:
+      - cvat_db_data:/var/lib/postgresql/data
+
+  # ── Redis (same version as Azure)
+  cvat_redis:
+    image: redis:7-alpine
+    restart: always
+
+volumes:
+  cvat_db_data:
