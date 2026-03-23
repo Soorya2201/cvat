@@ -49,7 +49,7 @@
     "pgServerName": "cvat-postgres-er",
     "pgDatabaseName": "cvat",
     "pgAdminUser": "cvat_admin",
-    "storageAccountName": "sooryaaudio${{UNIQUE_ID}}",
+    "storageAccountName": "sooryacvataudio2026",
     "redisContainerName": "cvat-redis",
     "cvatContainerName": "cvat-demo",
     "dnsLabel": "cvat-everyday-respect"
