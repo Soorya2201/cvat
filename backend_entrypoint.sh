@@ -7,16 +7,42 @@ fail() {
     exit 1
 }
 
+wait_for_service() {
+    local name="$1"
+    local host="${2:-}"
+    local port="${3:-}"
+    local timeout="${4:-0}"
+
+    if [[ -z "$host" || -z "$port" ]]; then
+        echo "Skipping ${name}: host or port is empty"
+        return 0
+    fi
+
+    wait-for-it "${host}:${port}" -t "${timeout}" --strict
+}
+
 wait_for_db() {
-    wait-for-it "${CVAT_POSTGRES_HOST}:${CVAT_POSTGRES_PORT:-5432}" -t 0
+    wait_for_service \
+        "PostgreSQL" \
+        "${CVAT_POSTGRES_HOST:-${DJANGO_DB_HOST:-${POSTGRES_HOST:-}}}" \
+        "${CVAT_POSTGRES_PORT:-${DJANGO_DB_PORT:-${POSTGRES_PORT:-5432}}}" \
+        0
 }
 
 wait_for_redis_inmem() {
-    wait-for-it "${CVAT_REDIS_INMEM_HOST}:${CVAT_REDIS_INMEM_PORT:-6379}" -t 0
+    wait_for_service \
+        "Redis" \
+        "${CVAT_REDIS_INMEM_HOST:-${REDIS_HOST:-}}" \
+        "${CVAT_REDIS_INMEM_PORT:-${REDIS_PORT:-6379}}" \
+        0
 }
 
 wait_for_clickhouse() {
-    wait-for-it "${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-8123}" -t 0
+    wait_for_service \
+        "ClickHouse" \
+        "${CLICKHOUSE_HOST:-}" \
+        "${CLICKHOUSE_PORT:-8123}" \
+        0
 }
 
 cmd_bash() {
@@ -140,8 +166,6 @@ while [ $# -ne 0 ]; do
     fi
 
     cmd_name="$1"
-
     shift
-
     "cmd_$cmd_name" "$@"
 done
