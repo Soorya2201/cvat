@@ -19,42 +19,6 @@ jobs:
           username: sooryacvatreg
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Create nginx config
-        run: |
-          cat > nginx-frontend.conf << 'NGINX'
-          server {
-              listen 80;
-              root /usr/share/nginx/html;
-              server_tokens off;
-              gzip on;
-              gzip_comp_level 6;
-              gzip_http_version 1.1;
-              gzip_types text/html application/javascript text/javascript application/wasm image/x-icon;
-              location / {
-                  try_files $uri $uri/ /index.html;
-                  add_header Cache-Control "no-cache, no-store, must-revalidate";
-                  add_header Pragma "no-cache";
-                  add_header Expires 0;
-                  add_header X-Frame-Options "deny";
-                  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-                  add_header X-Content-Type-Options "nosniff" always;
-              }
-              location /assets {
-                  expires 1y;
-                  add_header Cache-Control "public";
-                  access_log off;
-              }
-          }
-          NGINX
-
-      - name: Create Dockerfile for fixed frontend
-        run: |
-          cat > Dockerfile.frontend-fixed << 'DOCKERFILE'
-          FROM sooryacvatreg.azurecr.io/cvat-ui:latest
-          COPY nginx-frontend.conf /etc/nginx/conf.d/default.conf
-          EXPOSE 80
-          DOCKERFILE
-
       - name: Build and push fixed frontend image
         uses: docker/build-push-action@v4
         with:
