@@ -19,6 +19,9 @@ jobs:
           username: sooryacvatreg
           password: ${{ secrets.ACR_PASSWORD }}
 
+      - name: Pull source UI image
+        run: docker pull sooryacvatreg.azurecr.io/cvat-ui:latest
+
       - name: Build and push fixed frontend image
         uses: docker/build-push-action@v4
         with:
