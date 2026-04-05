@@ -1,32 +1,7 @@
-# FILE: dockerfile.audio
-#
-# This extends the official CVAT server image to add ffmpeg,
-# which is required by our audio extraction endpoint.
-#
-# Usage (from the root of your CVAT fork):
-#   docker build -f dockerfile.audio \
-#     -t cvat-server-audio:latest .
-#
-# Or use the docker-compose.azure.yml which handles this automatically.
-
-# Pin to the same base CVAT uses — check cvat/Dockerfile for the exact tag
-ARG CVAT_VERSION=latest
-FROM cvat/server:${CVAT_VERSION}
-
-# Switch to root to install system packages
+FROM cvat/server:latest
 USER root
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create the audio cache directory with correct permissions
-RUN mkdir -p /home/django/data/audio_cache && \
-    chown -R django:django /home/django/data/audio_cache
-
-# Copy our new audio view file into the CVAT engine app
-COPY cvat/apps/engine/audio_view.py /home/django/cvat/apps/engine/audio_view.py
-
-# Switch back to the non-root user CVAT expects
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+COPY entrypoint-with-init.sh /home/django/entrypoint-with-init.sh
+RUN chmod +x /home/django/entrypoint-with-init.sh && chown django:django /home/django/entrypoint-with-init.sh
 USER django
+CMD ["/home/django/entrypoint-with-init.sh"]
